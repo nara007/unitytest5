@@ -41,7 +41,7 @@ public class clientSocket : MonoBehaviour
 
 		if (GUI.Button (new Rect (120, 10, 80, 20), "连接服务器")) {
 			this.client = new TcpClient ();
-			this.client.Connect ("141.76.21.206", Port);
+			this.client.Connect ("141.76.21.209", Port);
 //			this.client.Connect ("192.168.1.103", Port);
 			data = new byte[this.client.ReceiveBufferSize];
 			SendSocket (UserName);
@@ -112,6 +112,8 @@ public class clientSocket : MonoBehaviour
 
 
 				byte[] key = new byte[4];
+				byte[] front = new byte[4];
+
 
 				Array.Copy (data, 0, type, 0, 4);
 				int msgType = getIntFromBytes(type);
@@ -121,16 +123,21 @@ public class clientSocket : MonoBehaviour
 					Array.Copy (data, 8, xBytes, 0, 4);
 					Array.Copy (data, 12, yBytes, 0, 4);
 					Array.Copy (data, 16, zBytes, 0, 4);			
-					this.w = (float)getIntFromBytes (wBytes) / 1000000000; 
-					this.x = (float)getIntFromBytes (xBytes) / 1000000000; 
-					this.y = (float)getIntFromBytes (yBytes) / 1000000000; 
-					this.z = (float)getIntFromBytes (zBytes) / 1000000000; 
+					this.w = (float)getIntFromBytes (wBytes) / 1000000; 
+					this.x = (float)getIntFromBytes (xBytes) / 1000000; 
+					this.y = (float)getIntFromBytes (yBytes) / 1000000; 
+					this.z = (float)getIntFromBytes (zBytes) / 1000000; 
 //					Debug.Log (w + "  " + x + "  " + y + "  "+" "+z);
 				}
 				else if(msgType==0x3){
 					Array.Copy (data, 4, key, 0, 4);	
 					this.key = getIntFromBytes (key); 
 					Debug.Log (" key: " + this.key);
+				}
+				else if(msgType==0x4){
+					Array.Copy (data, 4, front, 0, 4);
+					this.frontDirection = (float)getIntFromBytes (front) / 1000000;
+					Debug.Log("front "+this.frontDirection);
 				}
 				else{
 					
@@ -175,6 +182,7 @@ public class clientSocket : MonoBehaviour
 		this.transform.localRotation = new Quaternion(-x, -y, z, w);
 //		this.transform.localRotation = Quaternion.Euler (this.pitch, this.roll, 0-this.yaw);
 //		transform.rotation = Quaternion.Euler(new Vector3(0, 60, 0));
+//		Debug.Log(this.frontDirection);
 	}
 
 	uint getUnsignedIntFromBytes (byte[] data)
