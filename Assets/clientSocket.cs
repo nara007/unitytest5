@@ -6,6 +6,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
+
+
+[RequireComponent (typeof(MeshFilter))]
+
 public class clientSocket : MonoBehaviour
 {
 
@@ -30,8 +34,41 @@ public class clientSocket : MonoBehaviour
 	private float y;
 	private float z;
 
-	private float frontDirection;
+	public float frontDirection;
 	private int key;
+
+//	GameObject mobile;
+//
+//	//mesh 
+//	Material green;
+//	Mesh meshFront;
+//
+//	Vector3[] frontMeshVectors;
+//	int[] frontMeshTriangles;
+//
+//	Vector3[] backMeshVectors;
+//	int[] backMeshTriangles;
+//
+//
+//	GameObject frontObj;
+//
+//
+//	int center_x = 0;
+//	int center_y = 0;
+//	int center_z = 0;
+//	int radius = 2;
+//	float distance = 0.8f;
+//	int pointNum = 30;
+//
+//	Vector3 circleCenter;
+
+
+	void Awake(){
+//		frontObj = GameObject.Find ("MeshFront");
+//		mobile = GameObject.Find ("GameObject");
+
+//		meshFront = frontObj.GetComponent<MeshFilter> ().mesh;
+	}
 
 	void OnGUI ()
 	{
@@ -41,7 +78,7 @@ public class clientSocket : MonoBehaviour
 
 		if (GUI.Button (new Rect (120, 10, 80, 20), "连接服务器")) {
 			this.client = new TcpClient ();
-			this.client.Connect ("141.76.21.209", Port);
+			this.client.Connect ("141.76.22.29", Port);
 //			this.client.Connect ("192.168.1.103", Port);
 			data = new byte[this.client.ReceiveBufferSize];
 			SendSocket (UserName);
@@ -137,7 +174,7 @@ public class clientSocket : MonoBehaviour
 				else if(msgType==0x4){
 					Array.Copy (data, 4, front, 0, 4);
 					this.frontDirection = (float)getIntFromBytes (front) / 1000000;
-					Debug.Log("front "+this.frontDirection);
+//					Debug.Log("front "+this.frontDirection);
 				}
 				else{
 					
@@ -169,11 +206,20 @@ public class clientSocket : MonoBehaviour
 		}
 	}
 
+//	void CreateCircleCenter ()
+//	{
+//
+//		circleCenter = new Vector3 (center_x, center_y, center_z);
+//	}
 
 	// Use this for initialization
 	void Start ()
 	{
-	
+//		green = Resources.Load("meshColor", typeof(Material)) as Material;
+//
+//		MakeFontOrBackMesh (true);
+//
+//		CreateMesh ();
 	}
 	
 	// Update is called once per frame
@@ -197,5 +243,78 @@ public class clientSocket : MonoBehaviour
 		int u = (int)(data [3] | data [2] << 8 |
 			data [1] << 16 | data [0] << 24);
 		return u;
+	}
+
+
+
+	void MakeFontOrBackMesh (bool isFront)
+	{
+//		Vector3[] meshVectors;
+//		int[] meshTriangles;
+//
+//		float initDegree = 69f;
+//		float initRad = (float)(initDegree * Mathf.PI / 180f);
+//		meshVectors = new Vector3[pointNum];
+//		float length = 2f * Mathf.Cos (initRad) * radius;
+//		float step = length / (pointNum - 2);
+//		for (int i = 0; i < pointNum - 1; i++) {
+//			//			float rad = (initDegree + i * 45 / (pointNum - 2)) * Mathf.PI / 360;
+//			//			frontMeshVectors [i] = new Vector3 (centre_x - radius * Mathf.Cos (rad), centre_y + radius * Mathf.Sin (rad), 0);
+//
+//			float x = center_x - radius * Mathf.Cos (initRad) + i * step;
+//			float y;
+//			if (isFront) {
+//				y = Mathf.Sqrt (Mathf.Pow (radius, 2) - Mathf.Pow (x - center_x, 2)) + center_y;
+//			} else {
+//				y = center_y - Mathf.Sqrt (Mathf.Pow (radius, 2) - Mathf.Pow (x - center_x, 2));
+//			}
+//			meshVectors [i] = new Vector3 (x, y, center_z);
+//		}
+//
+//		meshVectors [pointNum - 1] = new Vector3 (center_x, center_y, center_z);
+//
+//
+//		//		frontMeshVectors = new Vector3[]{new Vector3(0,0,0), new Vector3(0,2,0), new Vector3(1,0,0)};
+//		//
+//		//
+//		//		frontMeshTriangles = new int[]{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 };
+//		meshTriangles = new int[(pointNum - 2) * 3];
+//
+//		for (int i = 0; i < pointNum - 2; i++) {
+//			for (int j = 0; j < 3; j++) {
+//				if (j == 0) {
+//					meshTriangles [i * 3 + j] = i;
+//				} else if (j == 1) {
+//					meshTriangles [i * 3 + j] = i + 1;
+//				} else if (j == 2) {
+//					meshTriangles [i * 3 + j] = pointNum - 1;
+//				}
+//
+//			}
+//		}
+//
+//		if (isFront) {
+//			frontMeshVectors = meshVectors;
+//			frontMeshTriangles = meshTriangles;
+//		} else {
+//			backMeshVectors = meshVectors;
+//			backMeshTriangles = meshTriangles;
+//		}
+
+
+//		Vector3[] meshVectors;
+//		int[] meshTriangles;
+//
+//		meshVectors = new Vector3[]{new Vector3(2,0,0), new Vector3(0,0,2), new Vector3(0,0,0)};
+//		meshTriangles = new int[]{ 0, 1, 2 };
+//		frontMeshVectors = meshVectors;
+//		frontMeshTriangles = meshTriangles;
+	}
+
+	void CreateMesh (){
+//		meshFront.Clear ();
+//		meshFront.vertices = frontMeshVectors;
+//		meshFront.triangles = frontMeshTriangles;
+//		frontObj.transform.eulerAngles = new Vector3(0, 0, 0); 
 	}
 }
