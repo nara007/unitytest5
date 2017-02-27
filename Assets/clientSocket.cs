@@ -7,6 +7,11 @@ using System.Linq;
 using System.Text;
 
 
+// xml process
+using System.Xml;
+using System.Xml.Serialization;
+using System.IO;
+
 
 [RequireComponent (typeof(MeshFilter))]
 
@@ -25,9 +30,6 @@ public class clientSocket : MonoBehaviour
 	public string sendMsg = "";
 	//输入框
 
-//	private float yaw;
-//	private float pitch;
-//	private float roll;
 
 	private float w;
 	private float x;
@@ -36,38 +38,18 @@ public class clientSocket : MonoBehaviour
 
 	public float frontDirection;
 	private int key;
+	public float relDirection;
 
-//	GameObject mobile;
-//
-//	//mesh 
-//	Material green;
-//	Mesh meshFront;
-//
-//	Vector3[] frontMeshVectors;
-//	int[] frontMeshTriangles;
-//
-//	Vector3[] backMeshVectors;
-//	int[] backMeshTriangles;
-//
-//
-//	GameObject frontObj;
-//
-//
-//	int center_x = 0;
-//	int center_y = 0;
-//	int center_z = 0;
-//	int radius = 2;
-//	float distance = 0.8f;
-//	int pointNum = 30;
-//
-//	Vector3 circleCenter;
 
+
+	//xml process
+	XmlDocument doc;
+	SceneAnalyzerOutput objs;
+	Hashtable focusedObstacles = new Hashtable ();
+	Hashtable absoluteDirection = new Hashtable ();
 
 	void Awake(){
-//		frontObj = GameObject.Find ("MeshFront");
-//		mobile = GameObject.Find ("GameObject");
 
-//		meshFront = frontObj.GetComponent<MeshFilter> ().mesh;
 	}
 
 	void OnGUI ()
@@ -78,7 +60,7 @@ public class clientSocket : MonoBehaviour
 
 		if (GUI.Button (new Rect (120, 10, 80, 20), "连接服务器")) {
 			this.client = new TcpClient ();
-			this.client.Connect ("141.76.22.29", Port);
+			this.client.Connect ("141.76.21.182", Port);
 //			this.client.Connect ("192.168.1.103", Port);
 			data = new byte[this.client.ReceiveBufferSize];
 			SendSocket (UserName);
@@ -114,31 +96,7 @@ public class clientSocket : MonoBehaviour
 			if (bytesRead < 1) {
 				return;
 			} else {
-//				float fTemp = BitConverter.ToSingle(data, 0);
-//				 double fTemp = Convert.ToDouble(data);
-//				int myInt = Convert.ToInt32(data);
 
-
-//				message += System.Text.Encoding.ASCII.GetString(data, 0, bytesRead);
-//				message += Convert.ToString(myInt);
-//				Debug.Log(Convert.ToString(myInt));
-//				sbyte[] signed = (sbyte[]) (Array)data; 
-//				Debug.Log(data[0]+" "+data[1]+" "+data[2]+" "+data[3]);
-//				uint u = (uint)(data[3] | data[2] << 8 |
-//					data[1] << 16 | data[0] << 24);
-//				Debug.Log(BitConverter.ToInt32(data, 0));
-
-//				euler
-//				byte[] bytesYaw = new byte[4];
-//				byte[] bytesPitch = new byte[4];
-//				byte[] bytesRoll = new byte[4];
-//				Array.Copy (data, 0, bytesYaw, 0, 4);
-//				Array.Copy (data, 4, bytesPitch, 0, 4);
-//				Array.Copy (data, 8, bytesRoll, 0, 4);
-//				this.yaw = (float)getUnsignedIntFromBytes (bytesYaw) / 1000;
-//				this.pitch = (float)getUnsignedIntFromBytes (bytesPitch) / 1000;
-//				this.roll = (float)getUnsignedIntFromBytes (bytesRoll) / 1000; 
-//				Debug.Log (yaw + "  " + pitch + "  " + roll + "  ");
 
 				byte[] type = new byte[4]; 
 
@@ -168,7 +126,16 @@ public class clientSocket : MonoBehaviour
 				}
 				else if(msgType==0x3){
 					Array.Copy (data, 4, key, 0, 4);	
-					this.key = getIntFromBytes (key); 
+					this.key = getIntFromBytes (key);
+					if(this.key==29){
+						this.relDirection = this.frontDirection;
+						Debug.Log ("hello key: " + this.key);
+
+					}
+					else if(this.key==8){
+
+//						Debug.Log(getObjectsFromSpecificDirection(getRelativeDirection(this.relDirection, this.frontDirection)));
+					}
 					Debug.Log (" key: " + this.key);
 				}
 				else if(msgType==0x4){
@@ -176,27 +143,18 @@ public class clientSocket : MonoBehaviour
 					this.frontDirection = (float)getIntFromBytes (front) / 1000000;
 //					Debug.Log("front "+this.frontDirection);
 				}
+
+				else if(msgType==0x5){
+					string str = getObjectsFromSpecificDirection(getRelativeDirection(this.relDirection, this.frontDirection));
+					str = str.Replace("\r","");
+					str = str.Replace("\n","");
+					SendSocket(str+Environment.NewLine);
+					Debug.Log(str);	
+				}
 				else{
 					
 				}
 //				quaternion
-
-
-//				float myw,myx,myy,myz;
-//				Array.Copy (data, 0, wBytes, 0, 4);
-//				Array.Copy (data, 4, xBytes, 0, 4);
-//				Array.Copy (data, 8, yBytes, 0, 4);
-//				Array.Copy (data, 12, zBytes, 0, 4);
-//				this.w = (float)getIntFromBytes (wBytes) / 1000000000; 
-//				this.x = (float)getIntFromBytes (xBytes) / 1000000000; 
-//				this.y = (float)getIntFromBytes (yBytes) / 1000000000; 
-//				this.z = (float)getIntFromBytes (zBytes) / 1000000000; 
-
-//				myw = (float)getUnsignedIntFromBytes (w) ; 
-//				myx = (float)getUnsignedIntFromBytes (x) ; 
-//				myy = (float)getUnsignedIntFromBytes (y) ; 
-//				myz = (float)getUnsignedIntFromBytes (z) ; 
-
 
 
 			}
@@ -205,23 +163,334 @@ public class clientSocket : MonoBehaviour
 			Debug.Log (ex);
 		}
 	}
-
-//	void CreateCircleCenter ()
-//	{
-//
-//		circleCenter = new Vector3 (center_x, center_y, center_z);
-//	}
+		
 
 	// Use this for initialization
 	void Start ()
 	{
-//		green = Resources.Load("meshColor", typeof(Material)) as Material;
-//
-//		MakeFontOrBackMesh (true);
-//
-//		CreateMesh ();
+		// xml process
+		doc = new XmlDocument ();
+		ProcessXML ();
 	}
-	
+
+	// xml process
+	void ProcessXML ()
+	{
+		string path = Application.dataPath + "/xml/scene.xml";
+		//		string path = Application.dataPath + "/xml/cars.xml";
+
+		if (File.Exists (path)) {
+			Debug.Log ("file exits...");
+			XmlSerializer serializer = new XmlSerializer (typeof(SceneAnalyzerOutput));
+
+			StreamReader reader = new StreamReader (path);
+			objs = (SceneAnalyzerOutput)serializer.Deserialize (reader);
+
+			Debug.Log (objs.AnalyzedFrame [5].Obstacle [1].centralPosition.x);
+
+			OutPutSVG (0);
+			reader.Close ();
+
+
+			LoadResults (focusedObstacles, absoluteDirection);
+
+		}
+	}
+
+	public sealed class Utf8StringWriter : StringWriter
+	{
+		public override Encoding Encoding { get { return Encoding.UTF8; } }
+	}
+
+	public string LoadResults(Hashtable objects, Hashtable directions){
+
+		List<OutputObject> objs = new List<OutputObject> ();
+		foreach (DictionaryEntry de in objects) {
+			int id = (int)(de.Key);
+			Obstacle obstacle = (Obstacle)(de.Value);
+			OutputObject outputObj = new OutputObject ();
+			outputObj.ID = id;
+			outputObj.Distance = obstacle.distance;
+			outputObj.Direction = (float)(directions[id]);
+			outputObj.Category = obstacle.category;
+
+			objs.Add (outputObj);
+
+		}
+
+		//序列化这个对象
+		XmlSerializer serializer2 = new XmlSerializer (typeof(List<OutputObject>));
+
+		StringWriter textWriter = new Utf8StringWriter ();
+
+		//将对象序列化输出到控制台
+		serializer2.Serialize (textWriter, objs);
+
+//		Debug.Log (textWriter.ToString());
+
+		return textWriter.ToString();
+	}
+
+
+	public void OutPutSVG (float direction)
+	{
+
+		focusedObstacles.Clear ();
+		absoluteDirection.Clear ();
+		string htmlHead = "<!DOCTYPE html>\n<html lang=\"en\">\n\n<head>\n<meta charset=\"UTF-8\">\n<title>Document\n</title>\n<style>\n    .hover_group:hover {\n        /*opacity: 0.5;*/\n        cursor: pointer;\n    }\n    </style>\n</head>\n\n<body>";
+		string htmlTail = "</body>\n\n</html>";
+		string SVGHeader = "<svg width=\"100%\" height=\"500px\" version=\"1.1\" xmlns=\"http://www.w3.org/2000/svg\">";
+		string SVGTail = " </svg>";
+		float startDegree;
+		float endDegree;
+
+		if (direction < 30) {
+
+			startDegree = 330 + direction;
+			endDegree = direction + 30;
+
+		} else if (direction > 330) {
+			startDegree = direction - 30;
+			endDegree = 30 - (360 - direction);
+		} else {
+			startDegree = direction - 30;
+			endDegree = direction + 30;
+		}
+
+		if (objs == null) {
+			return;
+		} else {
+			foreach (AnalyzedFrame curAnalyzedFrame in objs.AnalyzedFrame) {
+				foreach (Obstacle obstacle in curAnalyzedFrame.Obstacle) {
+					float absDirection = CalcuteAbsoluteYaw (curAnalyzedFrame.Orientation.yaw, obstacle.direction);
+					if (isLocatedInScope (startDegree, endDegree, absDirection)) {
+						focusedObstacles.Add (obstacle.id, obstacle);
+						absoluteDirection.Add (obstacle.id, absDirection);
+					} else {
+					}
+
+
+				}
+			}
+
+			//			DrawSVG ();
+
+		}
+
+		//		Debug.Log (htmlHead+SVGHeader + DrawSVG (1, 2, 3) + SVGTail+htmlTail);
+//		Debug.Log (DrawSVG (500, 250, 150, direction));
+//		File.WriteAllText ("./test.html", htmlHead + SVGHeader + DrawSVG (500, 250, 150, direction) + SVGTail + htmlTail);
+	}
+
+
+	public string getObjectsFromSpecificDirection(float direction){
+		OutPutSVG (direction);
+		return LoadResults (focusedObstacles, absoluteDirection);
+	}
+
+	public float getRelativeDirection(float fDirection, float curDirection){
+
+		float[] middleDirection = new float[8];
+		PointSet[] startEndPoints = new PointSet[8];
+		float ret=0;
+		middleDirection [0] = fDirection;
+		for (int i = 1; i < 8; i++) {
+			float tmpDirection = fDirection + i * 45;
+			if (tmpDirection >= 360) {
+				tmpDirection = tmpDirection - 360;
+			}
+			middleDirection [i] = tmpDirection;
+		}
+
+		for (int i = 0; i < 8; i++) {
+			PointSet tmpPoint = new PointSet ();
+			float start = middleDirection [i] - 22.5f;
+			if (start < 0) {
+				start += 360;
+			}
+			float end = middleDirection [i] + 22.5f;
+			if (end >= 360) {
+				end -= 360;
+			}
+			tmpPoint.Start = start;
+			tmpPoint.End = end;
+			startEndPoints [i] = tmpPoint;
+		}
+
+		for (int i = 0; i < 8; i++) {
+			float start = startEndPoints [i].Start;
+			float end = startEndPoints [i].End;
+			if (end>start) {
+				if (curDirection > start && curDirection <= end) {
+					ret = middleDirection [i];
+				} else {
+				}
+			} else {
+				if ((curDirection >= 0 && curDirection <= end) || (curDirection > start && curDirection < 360)) {
+					ret = middleDirection [i];
+				} else {
+				}
+			}
+		}
+
+		return ret;
+			
+	}
+
+	public string DrawSVG (float cx, float cy, float radius, float direction)
+	{
+
+		//		string circle = "<circle cx=\"500\" cy=\"250\" r=\"150\" stroke=\"lightgreen\" stroke-width=\"2\" fill=\"none\" stroke-dasharray=\"10 20\" />";
+		string circle = "<circle cx=" + WrapString (cx.ToString ()) + " cy=" + WrapString (cy.ToString ()) +
+			" r=" + WrapString (radius.ToString ()) + " stroke=" + WrapString ("lightgreen") + " stroke-width=" + WrapString ("2") + " fill=" + WrapString ("none") +
+			" stroke-dasharray=" + WrapString ("10 20") + " />";
+		//		string lineLeft = "<line x1=\"500\" y1=\"250\" x2=\"425\" y2=\"120\" style=\"stroke:rgb(255,0,0);stroke-width:2\" stroke-dasharray=\"10 20\" />";
+		float lineLeft_x2 = cx - Mathf.Cos (Mathf.PI / 3) * radius;
+		float lineLeft_y2 = cy - Mathf.Sin (Mathf.PI / 3) * radius;
+		string lineLeft = "<line x1=" + WrapString (cx.ToString ()) + " y1=" + WrapString (cy.ToString ()) + " x2=" + WrapString (lineLeft_x2.ToString ()) + " y2=" +
+			WrapString (lineLeft_y2.ToString ()) + " style=" + WrapString ("stroke:rgb(255,0,0);stroke-width:2") + " stroke-dasharray=" +
+			WrapString ("10 20") + " />";
+
+		float lineRight_x2 = cx + Mathf.Cos (Mathf.PI / 3) * radius;
+		float lineRight_y2 = cy - Mathf.Sin (Mathf.PI / 3) * radius;
+
+		string lineRight = "<line x1=" + WrapString (cx.ToString ()) + " y1=" + WrapString (cy.ToString ()) + " x2=" + WrapString (lineRight_x2.ToString ()) + " y2=" +
+			WrapString (lineRight_y2.ToString ()) + " style=" + WrapString ("stroke:rgb(255,0,0);stroke-width:2") + " stroke-dasharray=" +
+			WrapString ("10 20") + " />";
+
+		//		string degree = "<text x=\"500\" y=\"80\" fill=\"red\">0°</text>";
+		string degree = "<text x=" + WrapString (cx.ToString ()) + " y=" + WrapString ((cy - radius - 20).ToString ()) + " fill=" + WrapString ("red") + ">" +
+			direction + "°" + "</text>";
+
+		string objs = null;
+		if (direction > 30 && direction < 330) {
+
+			foreach (DictionaryEntry de in absoluteDirection) { //ht为一个Hashtable实例
+				Debug.Log (de.Key);//de.Key对应于key/value键值对key
+				Debug.Log (de.Value);//de.Key对应于key/value键值对value
+				if (((float)(de.Value) - direction) >= 0) {
+
+					float x = cx + Mathf.Cos ((90 + direction - (float)(de.Value)) * Mathf.PI / 180) * ((Obstacle)(focusedObstacles [de.Key])).distance * radius / 2;
+					float y = cy - Mathf.Sin ((90 + direction - (float)(de.Value)) * Mathf.PI / 180) * ((Obstacle)focusedObstacles [de.Key]).distance * radius / 2;
+					objs += DrawCircle (x, y);
+
+				} else {
+					float x = cx - Mathf.Cos ((((float)(de.Value) - direction) + 90) * Mathf.PI / 180) * ((Obstacle)(focusedObstacles [de.Key])).distance * radius / 2;
+					float y = cy - Mathf.Sin ((((float)(de.Value) - direction) + 90) * Mathf.PI / 180) * ((Obstacle)(focusedObstacles [de.Key])).distance * radius / 2;
+					objs += DrawCircle (x, y);
+				}
+			}
+		} else if (direction >= 330) {
+			foreach (DictionaryEntry de in absoluteDirection) { //ht为一个Hashtable实例
+				if (((float)(de.Value) - direction) >= 0) {
+					float x = cx + Mathf.Cos ((90 + direction - (float)(de.Value)) * Mathf.PI / 180) * ((Obstacle)(focusedObstacles [de.Key])).distance * radius / 2;
+					float y = cy - Mathf.Sin ((90 + direction - (float)(de.Value)) * Mathf.PI / 180) * ((Obstacle)focusedObstacles [de.Key]).distance * radius / 2;
+					objs += DrawCircle (x, y);
+				} else {
+					if (Mathf.Abs (((float)(de.Value) - direction)) > 30) {
+						float x = cx + Mathf.Cos ((90 - 360 + direction - (float)(de.Value)) * Mathf.PI / 180) * ((Obstacle)(focusedObstacles [de.Key])).distance * radius / 2;
+						float y = cy - Mathf.Sin ((90 - 360 + direction - (float)(de.Value)) * Mathf.PI / 180) * ((Obstacle)focusedObstacles [de.Key]).distance * radius / 2;
+						objs += DrawCircle (x, y);
+					} else {
+						float x = cx - Mathf.Cos ((((float)(de.Value) - direction) + 90) * Mathf.PI / 180) * ((Obstacle)(focusedObstacles [de.Key])).distance * radius / 2;
+						float y = cy - Mathf.Sin ((((float)(de.Value) - direction) + 90) * Mathf.PI / 180) * ((Obstacle)(focusedObstacles [de.Key])).distance * radius / 2;
+						objs += DrawCircle (x, y);
+					}
+				}
+			}	
+		} else {
+			foreach (DictionaryEntry de in absoluteDirection) {
+				if (((float)(de.Value) - direction) <= 0) {
+					float x = cx - Mathf.Cos ((((float)(de.Value) - direction) + 90) * Mathf.PI / 180) * ((Obstacle)(focusedObstacles [de.Key])).distance * radius / 2;
+					float y = cy - Mathf.Sin ((((float)(de.Value) - direction) + 90) * Mathf.PI / 180) * ((Obstacle)(focusedObstacles [de.Key])).distance * radius / 2;
+					objs += DrawCircle (x, y);
+				} else {
+					if (Mathf.Abs (((float)(de.Value) - direction)) > 30) {
+						float x = cx - Mathf.Cos ((((float)(de.Value) - direction) + 90 - 360) * Mathf.PI / 180) * ((Obstacle)(focusedObstacles [de.Key])).distance * radius / 2;
+						float y = cy - Mathf.Sin ((((float)(de.Value) - direction) + 90 - 360) * Mathf.PI / 180) * ((Obstacle)(focusedObstacles [de.Key])).distance * radius / 2;
+						objs += DrawCircle (x, y);
+					} else {
+						float x = cx + Mathf.Cos ((90 + direction - (float)(de.Value)) * Mathf.PI / 180) * ((Obstacle)(focusedObstacles [de.Key])).distance * radius / 2;
+						float y = cy - Mathf.Sin ((90 + direction - (float)(de.Value)) * Mathf.PI / 180) * ((Obstacle)focusedObstacles [de.Key]).distance * radius / 2;
+						objs += DrawCircle (x, y);	
+					}
+				}
+			}	
+		}
+
+		//		return circle+lineLeft+lineRight+degree+DrawCircle(500, 200)+DrawRect(520, 150, 7, 7)+DrawTriangle(10,20);
+		return circle + lineLeft + lineRight + degree + objs;
+	}
+
+	public string DrawCircle (float cx, float cy)
+	{
+
+		//		string circle = "<circle cx=\"490\" cy=\"190\" r=\"5\" fill=\"blue\" />";
+		string circle = "<circle cx=" + WrapString (cx.ToString ()) + " cy=" + WrapString (cy.ToString ()) + " r=" + WrapString ("5") + " fill=" + WrapString ("blue") + " />";
+		return circle;
+	}
+
+	public string DrawRect (float x, float y, float w, float h)
+	{
+
+		//		string rect = "<rect x=\"520\" y=\"150\" width=\"7\" height=\"7\" style=\"fill:green\" />";
+		string rect = "<rect x=" + WrapString (x.ToString ()) + " y=" + WrapString (y.ToString ()) + " width=" + WrapString (w.ToString ()) +
+			" height=" + WrapString (h.ToString ()) + " style=" + WrapString ("fill:green") + " />";
+		return rect;
+	}
+
+	public string DrawTriangle (float x, float y)
+	{
+		//		string triangle = "<polygon points=\"450,130 440,130 445,120 \" style=\"fill:red;stroke:black;stroke-width:1\" />";
+		float x1 = x - 4;
+		float y1 = y + 3;
+		float x2 = x + 4;
+		float y2 = y + 3;
+		float x3 = x;
+		float y3 = y - 3;
+		string points = x1 + "," + y1 + " " + x2 + "," + y2 + " " + x3 + "," + y3;
+		string triangle = "<polygon points=" + WrapString (points) + " style=" + WrapString ("fill:red;stroke:black;stroke-width:1") + " />";
+		return triangle;
+	}
+
+	private string WrapString (string str)
+	{
+
+		return "\"" + str + "\"";
+	}
+
+	public float CalcuteAbsoluteYaw (float frameYaw, float relativeDirection)
+	{
+		float direction = frameYaw + relativeDirection;
+		if (direction >= 360) {
+			direction = direction - 360;
+		} else if (direction < 0) {
+			direction = 360 + direction;
+		}
+
+		return direction;
+	}
+
+	public bool isLocatedInScope (float startDegree, float endDegree, float direction)
+	{
+
+		if (startDegree > endDegree) {
+			if ((direction >= startDegree && direction < 360) || (direction < endDegree)) {
+				return true;
+			} else {
+				return false;
+			}
+
+		} else {
+			if (direction >= startDegree && direction <= endDegree) {
+				return true;
+			} else {
+				return false;
+			}
+		}
+	}
+
+
 	// Update is called once per frame
 	void Update ()
 	{
@@ -247,74 +516,151 @@ public class clientSocket : MonoBehaviour
 
 
 
-	void MakeFontOrBackMesh (bool isFront)
-	{
-//		Vector3[] meshVectors;
-//		int[] meshTriangles;
-//
-//		float initDegree = 69f;
-//		float initRad = (float)(initDegree * Mathf.PI / 180f);
-//		meshVectors = new Vector3[pointNum];
-//		float length = 2f * Mathf.Cos (initRad) * radius;
-//		float step = length / (pointNum - 2);
-//		for (int i = 0; i < pointNum - 1; i++) {
-//			//			float rad = (initDegree + i * 45 / (pointNum - 2)) * Mathf.PI / 360;
-//			//			frontMeshVectors [i] = new Vector3 (centre_x - radius * Mathf.Cos (rad), centre_y + radius * Mathf.Sin (rad), 0);
-//
-//			float x = center_x - radius * Mathf.Cos (initRad) + i * step;
-//			float y;
-//			if (isFront) {
-//				y = Mathf.Sqrt (Mathf.Pow (radius, 2) - Mathf.Pow (x - center_x, 2)) + center_y;
-//			} else {
-//				y = center_y - Mathf.Sqrt (Mathf.Pow (radius, 2) - Mathf.Pow (x - center_x, 2));
-//			}
-//			meshVectors [i] = new Vector3 (x, y, center_z);
-//		}
-//
-//		meshVectors [pointNum - 1] = new Vector3 (center_x, center_y, center_z);
-//
-//
-//		//		frontMeshVectors = new Vector3[]{new Vector3(0,0,0), new Vector3(0,2,0), new Vector3(1,0,0)};
-//		//
-//		//
-//		//		frontMeshTriangles = new int[]{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 };
-//		meshTriangles = new int[(pointNum - 2) * 3];
-//
-//		for (int i = 0; i < pointNum - 2; i++) {
-//			for (int j = 0; j < 3; j++) {
-//				if (j == 0) {
-//					meshTriangles [i * 3 + j] = i;
-//				} else if (j == 1) {
-//					meshTriangles [i * 3 + j] = i + 1;
-//				} else if (j == 2) {
-//					meshTriangles [i * 3 + j] = pointNum - 1;
-//				}
-//
-//			}
-//		}
-//
-//		if (isFront) {
-//			frontMeshVectors = meshVectors;
-//			frontMeshTriangles = meshTriangles;
-//		} else {
-//			backMeshVectors = meshVectors;
-//			backMeshTriangles = meshTriangles;
-//		}
 
 
-//		Vector3[] meshVectors;
-//		int[] meshTriangles;
-//
-//		meshVectors = new Vector3[]{new Vector3(2,0,0), new Vector3(0,0,2), new Vector3(0,0,0)};
-//		meshTriangles = new int[]{ 0, 1, 2 };
-//		frontMeshVectors = meshVectors;
-//		frontMeshTriangles = meshTriangles;
-	}
+}
 
-	void CreateMesh (){
-//		meshFront.Clear ();
-//		meshFront.vertices = frontMeshVectors;
-//		meshFront.triangles = frontMeshTriangles;
-//		frontObj.transform.eulerAngles = new Vector3(0, 0, 0); 
-	}
+public class PointSet{
+	public float Start{ get; set;}
+	public float End{ get; set;}
+}
+
+//xml process
+[System.Xml.Serialization.XmlRoot ("SceneAnalyzerOutput", Namespace = "http://range-it.eu/xmlschemata/sceneanalyzeroutput")]
+public class SceneAnalyzerOutput
+{
+	[XmlArray ("AnalyzedFrames")]
+	[XmlArrayItem ("AnalyzedFrame", typeof(AnalyzedFrame))]
+	public AnalyzedFrame[] AnalyzedFrame { get; set; }
+
+
+}
+
+
+public class AnalyzedFrame
+{
+	//
+	[XmlAttribute]
+	public int id { get; set; }
+	//
+	[XmlAttribute]
+	public string timestamp { get; set; }
+	//
+	[XmlAttribute]
+	public string mode { get; set; }
+	//
+	[XmlAttribute]
+	public float cameraHeight { get; set; }
+	//
+	[XmlAttribute]
+	public bool muteState { get; set; }
+
+
+	[XmlElement ("Orientation", Namespace = "http://range-it.eu/xmlschemata/sceneanalyzeroutput")]
+	public Orientation Orientation { get; set; }
+
+	[XmlElement ("Saturation", Namespace = "http://range-it.eu/xmlschemata/sceneanalyzeroutput")]
+	public Saturation Saturation { get; set; }
+
+
+	[XmlArray ("Obstacles")]
+	[XmlArrayItem ("Obstacle", typeof(Obstacle))]
+	public Obstacle[] Obstacle { get; set; }
+}
+
+
+public class Orientation
+{
+	[XmlAttribute]
+	public float yaw { get; set; }
+
+	[XmlAttribute]
+	public float pitch { get; set; }
+
+	[XmlAttribute]
+	public float roll { get; set; }
+}
+
+public class Saturation
+{
+	[XmlAttribute]
+	public int rate { get; set; }
+
+	[XmlAttribute]
+	public string area { get; set; }
+}
+
+public class Obstacle
+{
+	[XmlAttribute]
+	public int id { get; set; }
+
+	[XmlAttribute]
+	public string obstacleType { get; set; }
+
+	[XmlAttribute]
+	public float distance { get; set; }
+
+	[XmlAttribute]
+	public float direction { get; set; }
+
+	[XmlAttribute]
+	public string category { get; set; }
+
+	[XmlElement ("Size", Namespace = "http://range-it.eu/xmlschemata/sceneanalyzeroutput")]
+	public Size size { get; set; }
+
+	[XmlElement ("CentralPosition", Namespace = "http://range-it.eu/xmlschemata/sceneanalyzeroutput")]
+	public CentralPosition centralPosition { get; set; }
+}
+
+public class Size
+{
+
+	[XmlAttribute]
+	public float width { get; set; }
+
+	[XmlAttribute]
+	public float height { get; set; }
+
+	[XmlAttribute]
+	public float depth { get; set; }
+}
+
+public class CentralPosition
+{
+
+	[XmlAttribute]
+	public float x { get; set; }
+
+	[XmlAttribute]
+	public float y { get; set; }
+
+	[XmlAttribute]
+	public float z { get; set; }
+}
+
+[XmlRoot ("object")]
+public class OutputObject
+{
+	//	//定义Color属性的序列化为cat节点的属性
+	//	[XmlAttribute ("id")]
+	//	public int ID { get; set; }
+
+	//	//要求不序列化Speed属性
+	//	[XmlIgnore]
+	//	public int Speed { get; set; }
+
+	[XmlElement ("id")]
+	public int ID { get; set; }
+
+	[XmlElement ("distance")]
+	public float Distance { get; set; }
+
+	[XmlElement ("direction")]
+	public float Direction { get; set; }
+
+	[XmlElement ("category")]
+	public string Category { get; set; }
+
 }
