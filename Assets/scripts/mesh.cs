@@ -156,7 +156,7 @@ public class mesh : MonoBehaviour
 	// Update is called once per frame
 	void Update ()
 	{
-		ShowCurrentDirection (mobileScript.frontDirection);
+		ShowCurrentDirection (mobileScript.pointingDirection);
 //		if (Input.GetKeyDown (KeyCode.A)) {
 //			Debug.Log ("您按下了A键");
 //			showNextMesh ();

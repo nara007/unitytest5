@@ -18,6 +18,11 @@ using System.IO;
 public class clientSocket : MonoBehaviour
 {
 
+	//three scope mode
+//	private ScopeMode scopeMode = ScopeMode.FOUR;
+//	private ScopeMode scopeMode = ScopeMode.SIX;
+	private ScopeMode scopeMode = ScopeMode.EIGHT;
+
 	const int Port = 10000;
 	//端口号与服务端端口对应
 	private TcpClient client;
@@ -36,9 +41,11 @@ public class clientSocket : MonoBehaviour
 	private float y;
 	private float z;
 
-	public float frontDirection;
+	//stick pointing direction, updated in real time
+	public float pointingDirection;
 	private int key;
-	public float relDirection;
+	//current facing direction, not stick pointing direction, updated by user command 
+	public float facingDirection;
 
 
 
@@ -60,7 +67,8 @@ public class clientSocket : MonoBehaviour
 
 		if (GUI.Button (new Rect (120, 10, 80, 20), "连接服务器")) {
 			this.client = new TcpClient ();
-			this.client.Connect ("141.76.21.182", Port);
+//			this.client.Connect ("141.76.21.182", Port);
+			this.client.Connect ("172.26.144.63", Port);
 //			this.client.Connect ("192.168.1.103", Port);
 			data = new byte[this.client.ReceiveBufferSize];
 			SendSocket (UserName);
@@ -128,24 +136,35 @@ public class clientSocket : MonoBehaviour
 					Array.Copy (data, 4, key, 0, 4);	
 					this.key = getIntFromBytes (key);
 					if(this.key==29){
-						this.relDirection = this.frontDirection;
+						this.facingDirection = this.pointingDirection;
 						Debug.Log ("hello key: " + this.key);
 
 					}
 					else if(this.key==8){
 
-//						Debug.Log(getObjectsFromSpecificDirection(getRelativeDirection(this.relDirection, this.frontDirection)));
+						//Debug.Log(getObjectsFromSpecificDirection(getRelativeDirection(this.facingDirection, this.pointingDirection)));
 					}
-					Debug.Log (" key: " + this.key);
+					else if(this.key==9){
+
+//						Debug.Log("jiaodu");
+//						Debug.Log(getRelativeDirection2(this.facingDirection, this.pointingDirection));
+					}
+
+					// scope mode switch key value 36
+					else if(this.key==36){
+//						switchScopeMode();
+					}
+
+//					Debug.Log (" key: " + this.key);
 				}
 				else if(msgType==0x4){
 					Array.Copy (data, 4, front, 0, 4);
-					this.frontDirection = (float)getIntFromBytes (front) / 1000000;
-//					Debug.Log("front "+this.frontDirection);
+					this.pointingDirection = (float)getIntFromBytes (front) / 1000000;
+//					Debug.Log("front "+this.pointingDirection);
 				}
 
 				else if(msgType==0x5){
-					string str = getObjectsFromSpecificDirection(getRelativeDirection(this.relDirection, this.frontDirection));
+					string str = getObjectsFromSpecificDirection2(getRelativeDirection2(this.facingDirection, this.pointingDirection));
 					str = str.Replace("\r","");
 					str = str.Replace("\n","");
 					SendSocket(str+Environment.NewLine);
@@ -176,7 +195,7 @@ public class clientSocket : MonoBehaviour
 	// xml process
 	void ProcessXML ()
 	{
-		string path = Application.dataPath + "/xml/scene.xml";
+		string path = Application.dataPath + "/xml/scene2.xml";
 		//		string path = Application.dataPath + "/xml/cars.xml";
 
 		if (File.Exists (path)) {
@@ -186,13 +205,13 @@ public class clientSocket : MonoBehaviour
 			StreamReader reader = new StreamReader (path);
 			objs = (SceneAnalyzerOutput)serializer.Deserialize (reader);
 
-			Debug.Log (objs.AnalyzedFrame [5].Obstacle [1].centralPosition.x);
+//			Debug.Log (objs.AnalyzedFrame [5].Obstacle [1].centralPosition.x);
 
-			OutPutSVG (0);
+			//OutPutSVG (0);
 			reader.Close ();
 
 
-			LoadResults (focusedObstacles, absoluteDirection);
+			//LoadResults (focusedObstacles, absoluteDirection);
 
 		}
 	}
@@ -200,6 +219,85 @@ public class clientSocket : MonoBehaviour
 	public sealed class Utf8StringWriter : StringWriter
 	{
 		public override Encoding Encoding { get { return Encoding.UTF8; } }
+	}
+
+	public string calculateDirectionInClock(float absoluteDirection){
+		//difference in degree
+		float difference = 0.0f;
+		if (this.facingDirection < absoluteDirection) {
+			difference = absoluteDirection - this.facingDirection;
+		} else {
+			difference = 360 + absoluteDirection - this.facingDirection;
+		}
+
+		if (difference < 15 || difference >= 345) {
+			return "12 Uhr ";
+		}
+		else if(difference>=15 && difference <45){
+			return "1 Uhr ";
+		}
+		else if(difference>=45 && difference <75){
+			return "2 Uhr ";
+		}
+		else if(difference>=75 && difference <105){
+			return "3 Uhr ";
+		}
+		else if(difference>=105 && difference <135){
+			return "4 Uhr ";
+		}
+		else if(difference>=135 && difference <165){
+			return "5 Uhr ";
+		}
+		else if(difference>=165 && difference <195){
+			return "6 Uhr ";
+		}
+		else if(difference>=195 && difference <225){
+			return "7 Uhr ";
+		}
+		else if(difference>=225 && difference <255){
+			return "8 Uhr ";
+		}
+		else if(difference>=255 && difference <285){
+			return "9 Uhr ";
+		}
+		else if(difference>=285 && difference <315){
+			return "10 Uhr ";
+		}
+		else if(difference>=315 && difference <345){
+			return "11 Uhr ";
+		}
+			
+		return "falsch Richtung";
+	}
+
+	public string LoadResults2(Hashtable objects, Hashtable directions){
+
+		List<OutputObject> objs = new List<OutputObject> ();
+		foreach (DictionaryEntry de in objects) {
+			int id = (int)(de.Key);
+			Obstacle obstacle = (Obstacle)(de.Value);
+			OutputObject outputObj = new OutputObject ();
+			outputObj.ID = id;
+			outputObj.Distance = obstacle.distance;
+			outputObj.Direction = (float)(directions[id]);
+			outputObj.Category = obstacle.category;
+			outputObj.DirectionInClock = calculateDirectionInClock (outputObj.Direction);
+
+			objs.Add (outputObj);
+
+		}
+
+		//序列化这个对象
+		XmlSerializer serializer2 = new XmlSerializer (typeof(List<OutputObject>));
+
+		StringWriter textWriter = new Utf8StringWriter ();
+
+		//将对象序列化输出到控制台
+		serializer2.Serialize (textWriter, objs);
+
+		//		Debug.Log (textWriter.ToString());
+
+		return textWriter.ToString();
 	}
 
 	public string LoadResults(Hashtable objects, Hashtable directions){
@@ -231,6 +329,49 @@ public class clientSocket : MonoBehaviour
 		return textWriter.ToString();
 	}
 
+	public void OutPutSVG2(float direction){
+		focusedObstacles.Clear ();
+		absoluteDirection.Clear ();
+		float startDegree;
+		float endDegree;
+		float step=0f;
+
+		if (scopeMode == ScopeMode.FOUR) {
+			step = 90.0f;
+		} else if (scopeMode == ScopeMode.SIX) {
+			step = 60.0f;
+		} else if(scopeMode == ScopeMode.EIGHT){
+			step = 45.0f;	
+		}
+
+		startDegree = direction - step / 2;
+		if (startDegree < 0) {
+			startDegree += 360;
+		}
+		endDegree = direction + step / 2;
+		if(endDegree >= 360){
+			endDegree -= 360;
+		}
+
+		if (objs == null) {
+			return;
+		} else {
+			foreach (AnalyzedFrame curAnalyzedFrame in objs.AnalyzedFrame) {
+				foreach (Obstacle obstacle in curAnalyzedFrame.Obstacle) {
+					float absDirection = CalcuteAbsoluteYaw (curAnalyzedFrame.Orientation.yaw, obstacle.direction);
+					if (isLocatedInScope (startDegree, endDegree, absDirection)) {
+						focusedObstacles.Add (obstacle.id, obstacle);
+						absoluteDirection.Add (obstacle.id, absDirection);
+					} else {
+					}
+
+
+				}
+			}
+		}
+
+
+	}
 
 	public void OutPutSVG (float direction)
 	{
@@ -283,9 +424,9 @@ public class clientSocket : MonoBehaviour
 	}
 
 
-	public string getObjectsFromSpecificDirection(float direction){
-		OutPutSVG (direction);
-		return LoadResults (focusedObstacles, absoluteDirection);
+	public string getObjectsFromSpecificDirection2(float direction){
+		OutPutSVG2 (direction);
+		return LoadResults2 (focusedObstacles, absoluteDirection);
 	}
 
 	public float getRelativeDirection(float fDirection, float curDirection){
@@ -335,6 +476,78 @@ public class clientSocket : MonoBehaviour
 
 		return ret;
 			
+	}
+
+
+	public float getRelativeDirection2(float facingDirection, float pointingDirection){
+	
+		float[] middleDirection;
+		PointSet[] startEndPoints;
+		int num = 4;
+		float step = 90.0f;
+
+		if (scopeMode == ScopeMode.FOUR) {
+			num = 4;
+			step = 90.0f;
+		} else if (scopeMode == ScopeMode.SIX) {
+			num = 6;
+			step = 60.0f;
+			
+		} else if (scopeMode == ScopeMode.EIGHT) {
+			num = 8;
+			step = 45.0f;
+		} else {
+			Debug.Log ("getRelativeDirection2 error");
+		}
+		middleDirection = new float[num];
+		startEndPoints = new PointSet[num];
+
+
+		float ret=0;
+		middleDirection [0] = facingDirection;
+		for (int i = 1; i < num; i++) {
+			float tmpDirection = facingDirection + i * step;
+			if (tmpDirection >= 360) {
+				tmpDirection = tmpDirection - 360;
+			}
+			middleDirection [i] = tmpDirection;
+		}
+
+		for (int i = 0; i < num; i++) {
+			PointSet tmpPoint = new PointSet ();
+			float start = middleDirection [i] - step/2;
+			if (start < 0) {
+				start += 360;
+			}
+			float end = middleDirection [i] + step/2;
+			if (end >= 360) {
+				end -= 360;
+			}
+			tmpPoint.Start = start;
+			tmpPoint.End = end;
+			startEndPoints [i] = tmpPoint;
+		}
+
+		for (int i = 0; i < num; i++) {
+			float start = startEndPoints [i].Start;
+			float end = startEndPoints [i].End;
+			if (end>start) {
+				if (pointingDirection > start && pointingDirection <= end) {
+					ret = middleDirection [i];
+					return ret;
+				} else {
+				}
+			} else {
+					if ((pointingDirection >= 0 && pointingDirection <= end) || (pointingDirection > start && pointingDirection < 360)) {
+						ret = middleDirection [i];
+						return ret;
+					} else {
+					}
+			}
+		}
+
+		return ret;
+		
 	}
 
 	public string DrawSVG (float cx, float cy, float radius, float direction)
@@ -497,7 +710,7 @@ public class clientSocket : MonoBehaviour
 		this.transform.localRotation = new Quaternion(-x, -y, z, w);
 //		this.transform.localRotation = Quaternion.Euler (this.pitch, this.roll, 0-this.yaw);
 //		transform.rotation = Quaternion.Euler(new Vector3(0, 60, 0));
-//		Debug.Log(this.frontDirection);
+//		Debug.Log(this.facingDirection);
 	}
 
 	uint getUnsignedIntFromBytes (byte[] data)
@@ -516,6 +729,20 @@ public class clientSocket : MonoBehaviour
 
 
 
+	public void switchScopeMode(){
+		if (scopeMode == ScopeMode.FOUR) {
+			scopeMode = ScopeMode.SIX;
+			Debug.Log ("switch to Six mode");
+		}
+		else if(scopeMode == ScopeMode.SIX){
+			scopeMode = ScopeMode.EIGHT;
+			Debug.Log ("switch to Eight mode");
+		}
+		else if(scopeMode == ScopeMode.EIGHT){
+			scopeMode = ScopeMode.FOUR;
+			Debug.Log ("switch to Four mode");
+		}
+	}
 
 
 }
@@ -663,4 +890,15 @@ public class OutputObject
 	[XmlElement ("category")]
 	public string Category { get; set; }
 
+	[XmlElement ("directionInClock")]
+	public string DirectionInClock { get; set; }
+
 }
+
+// three scope mode 
+public enum ScopeMode
+{
+	FOUR = 0,
+	SIX = 1,
+	EIGHT= 2,
+};
