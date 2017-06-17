@@ -19,9 +19,9 @@ public class clientSocket : MonoBehaviour
 {
 
 	//three scope mode
-//	private ScopeMode scopeMode = ScopeMode.FOUR;
+	private ScopeMode scopeMode = ScopeMode.FOUR;
 //	private ScopeMode scopeMode = ScopeMode.SIX;
-	private ScopeMode scopeMode = ScopeMode.EIGHT;
+//	private ScopeMode scopeMode = ScopeMode.EIGHT;
 
 	const int Port = 10000;
 	//端口号与服务端端口对应
@@ -46,6 +46,11 @@ public class clientSocket : MonoBehaviour
 	private int key;
 	//current facing direction, not stick pointing direction, updated by user command 
 	public float facingDirection;
+
+	public float up;
+	public float down;
+	public float left;
+	public float right;
 
 
 
@@ -137,6 +142,19 @@ public class clientSocket : MonoBehaviour
 					this.key = getIntFromBytes (key);
 					if(this.key==29){
 						this.facingDirection = this.pointingDirection;
+
+						//up scope
+						this.up = this.facingDirection;
+						//down scope
+						float down = this.facingDirection + 180;
+						this.down = down>360? down-360:down;
+						//left scope
+						float left = this.facingDirection + 270;
+						this.left = left>360?left-360:left;
+						//right scope
+						float right = this.facingDirection + 90;
+						this.right = right>360?right-360:right;
+
 						Debug.Log ("hello key: " + this.key);
 
 					}
@@ -154,6 +172,51 @@ public class clientSocket : MonoBehaviour
 					else if(this.key==36){
 //						switchScopeMode();
 					}
+					// cross mode press upkey to get up scope 
+					else if(this.key == 19){
+						if(scopeMode == ScopeMode.FOUR){
+							string str = getObjectsFromSpecificDirection2(this.up);	
+							str = str.Replace("\r","");
+							str = str.Replace("\n","");
+							SendSocket(str+Environment.NewLine);
+							Debug.Log(str);	
+						}
+					}
+
+					// cross mode press downkey to get down scope 
+					else if(this.key == 20){
+						if(scopeMode == ScopeMode.FOUR){
+							string str = getObjectsFromSpecificDirection2(this.down);	
+							str = str.Replace("\r","");
+							str = str.Replace("\n","");
+							SendSocket(str+Environment.NewLine);
+							Debug.Log(str);	
+						}
+					}
+
+
+					// cross mode press leftkey to get left scope 
+					else if(this.key == 21){
+						if(scopeMode == ScopeMode.FOUR){
+							string str = getObjectsFromSpecificDirection2(this.left);	
+							str = str.Replace("\r","");
+							str = str.Replace("\n","");
+							SendSocket(str+Environment.NewLine);
+							Debug.Log(str);	
+						}
+					}
+
+					// cross mode press rightkey to get right scope 
+					else if(this.key == 22){
+						if(scopeMode == ScopeMode.FOUR){
+							string str = getObjectsFromSpecificDirection2(this.right);	
+							str = str.Replace("\r","");
+							str = str.Replace("\n","");
+							SendSocket(str+Environment.NewLine);
+							Debug.Log(str);	
+						}
+					}
+
 
 //					Debug.Log (" key: " + this.key);
 				}
